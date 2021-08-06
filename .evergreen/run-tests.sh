@@ -29,7 +29,7 @@ SLOW_TESTS_ONLY=${SLOW_TESTS_ONLY:-false}
 export ASYNC_TYPE="-Dorg.mongodb.test.async.type=${STREAM_TYPE}"
 
 export JAVA_HOME="/opt/java/jdk11"
-
+readonly JAVA_SYSPROP_MONGODB_DRIVER_DEBUGGER="-Dorg.mongodb.driver.connection.debugger=LOG_AND_THROW"
 
 ############################################
 #            Functions                     #
@@ -114,9 +114,13 @@ echo "Running tests with ${JDK}"
 
 if [ "$SLOW_TESTS_ONLY" == "true" ]; then
     ./gradlew -PjdkHome=/opt/java/${JDK} -Dorg.mongodb.test.uri=${MONGODB_URI} \
-              ${TRANSACTION_URI} ${GRADLE_EXTRA_VARS} ${ASYNC_TYPE} --stacktrace --info testSlowOnly
+              ${TRANSACTION_URI} ${GRADLE_EXTRA_VARS} ${ASYNC_TYPE} \
+              ${JAVA_SYSPROP_MONGODB_DRIVER_DEBUGGER} \
+              --stacktrace --info testSlowOnly
 else
     ./gradlew -PjdkHome=/opt/java/${JDK} -Dorg.mongodb.test.uri=${MONGODB_URI} \
               -Dorg.mongodb.test.awsAccessKeyId=${AWS_ACCESS_KEY_ID} -Dorg.mongodb.test.awsSecretAccessKey=${AWS_SECRET_ACCESS_KEY} \
-              ${TRANSACTION_URI} ${GRADLE_EXTRA_VARS} ${ASYNC_TYPE} --stacktrace --info --continue test
+              ${TRANSACTION_URI} ${GRADLE_EXTRA_VARS} ${ASYNC_TYPE} \
+              ${JAVA_SYSPROP_MONGODB_DRIVER_DEBUGGER} \
+              --stacktrace --info --continue test
 fi

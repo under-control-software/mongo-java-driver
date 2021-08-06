@@ -20,6 +20,10 @@ import com.mongodb.MongoCommandException;
 import com.mongodb.connection.ConnectionDescription;
 import com.mongodb.diagnostics.logging.Logger;
 import com.mongodb.event.CommandListener;
+import com.mongodb.internal.connection.InternalStreamConnection.CommandMessageData;
+import com.mongodb.internal.connection.InternalStreamConnection.DebuggingCommandEventSender;
+import com.mongodb.internal.connection.debug.InternalConnectionDebugger;
+import com.mongodb.lang.Nullable;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
 import org.bson.BsonReader;
@@ -47,10 +51,20 @@ class LoggingCommandEventSender implements CommandEventSender {
     private final CommandMessage message;
     private final String commandName;
     private volatile BsonDocument commandDocument;
+    @Nullable
+    private final InternalConnectionDebugger internalConnectionDebugger;
+    private final CommandEventSender debuggingCommandEventSender;
+
+    LoggingCommandEventSender(final Set<String> securitySensitiveCommands, final ConnectionDescription description,
+            final CommandListener commandListener, final CommandMessage message,
+            final ByteBufferBsonOutput bsonOutput, final Logger logger) {
+        this(securitySensitiveCommands, description, commandListener, message, bsonOutput, logger, null);
+    }
 
     LoggingCommandEventSender(final Set<String> securitySensitiveCommands, final ConnectionDescription description,
                               final CommandListener commandListener, final CommandMessage message,
-                              final ByteBufferBsonOutput bsonOutput, final Logger logger) {
+                              final ByteBufferBsonOutput bsonOutput, final Logger logger,
+                              @Nullable final InternalConnectionDebugger internalConnectionDebugger) {
         this.securitySensitiveCommands = securitySensitiveCommands;
         this.description = description;
         this.commandListener = commandListener;
@@ -59,10 +73,19 @@ class LoggingCommandEventSender implements CommandEventSender {
         this.message = message;
         this.commandDocument = message.getCommandDocument(bsonOutput);
         this.commandName = commandDocument.getFirstKey();
+        this.internalConnectionDebugger = internalConnectionDebugger;
+        debuggingCommandEventSender = internalConnectionDebugger == null
+                ? new NoOpCommandEventSender()
+                : internalConnectionDebugger.commandEventSenderDebugger()
+                        .<CommandEventSender>map(commandEventSenderDebugger -> new DebuggingCommandEventSender(
+                                new CommandMessageData(message, commandName, commandDocument.containsKey("speculativeAuthenticate")),
+                                commandEventSenderDebugger))
+                        .orElse(new NoOpCommandEventSender());
     }
 
     @Override
     public void sendStartedEvent() {
+        debuggingCommandEventSender.sendStartedEvent();
         if (loggingRequired()) {
             logger.debug(
                     format("Sending command '%s' with request id %d to database %s on connection [%s] to server %s",
@@ -104,11 +127,12 @@ class LoggingCommandEventSender implements CommandEventSender {
 
     @Override
     public void sendFailedEvent(final Throwable t) {
+        long elapsedTimeNanos = System.nanoTime() - startTimeNanos;
+        debuggingCommandEventSender.sendFailedEvent(t);
         Throwable commandEventException = t;
         if (t instanceof MongoCommandException && (securitySensitiveCommands.contains(commandName))) {
             commandEventException = new MongoCommandException(new BsonDocument(), description.getServerAddress());
         }
-        long elapsedTimeNanos = System.nanoTime() - startTimeNanos;
 
         if (loggingRequired()) {
             logger.debug(
@@ -127,7 +151,7 @@ class LoggingCommandEventSender implements CommandEventSender {
     @Override
     public void sendSucceededEvent(final ResponseBuffers responseBuffers) {
         long elapsedTimeNanos = System.nanoTime() - startTimeNanos;
-
+        debuggingCommandEventSender.sendSucceededEvent(responseBuffers);
         if (loggingRequired()) {
             logger.debug(
                     format("Execution of command with request id %d completed successfully in %s ms on connection [%s] to server %s",
@@ -138,7 +162,7 @@ class LoggingCommandEventSender implements CommandEventSender {
         if (eventRequired()) {
             BsonDocument responseDocumentForEvent = (securitySensitiveCommands.contains(commandName))
                     ? new BsonDocument()
-                    : responseBuffers.getResponseDocument(message.getId(), new RawBsonDocumentCodec());
+                    : responseBuffers.getResponseDocument(message.getId(), new RawBsonDocumentCodec(), internalConnectionDebugger);
             sendCommandSucceededEvent(message, commandName, responseDocumentForEvent, description,
                     elapsedTimeNanos, commandListener);
         }
@@ -147,7 +171,7 @@ class LoggingCommandEventSender implements CommandEventSender {
     @Override
     public void sendSucceededEventForOneWayCommand() {
         long elapsedTimeNanos = System.nanoTime() - startTimeNanos;
-
+        debuggingCommandEventSender.sendSucceededEventForOneWayCommand();
         if (loggingRequired()) {
             logger.debug(
                     format("Execution of one-way command with request id %d completed successfully in %s ms on connection [%s] "

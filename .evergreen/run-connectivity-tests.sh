@@ -18,11 +18,18 @@ JDK=${JDK:-jdk}
 echo "Running connectivity tests with ${JDK}"
 
 export JAVA_HOME="/opt/java/jdk11"
+readonly JAVA_SYSPROP_MONGODB_DRIVER_DEBUGGER="-Dorg.mongodb.driver.connection.debugger=LOG_AND_THROW"
 
 ./gradlew -version
 
 for MONGODB_URI in $@; do
-    ./gradlew -PjdkHome=/opt/java/${JDK} -Dorg.mongodb.test.uri=${MONGODB_URI} --stacktrace --info --rerun-tasks driver-sync:test --tests ConnectivityTest
-    ./gradlew -PjdkHome=/opt/java/${JDK} -Dorg.mongodb.test.uri=${MONGODB_URI} --stacktrace --info --rerun-tasks driver-core:test --tests ConnectivityTest
-    ./gradlew -PjdkHome=/opt/java/${JDK} -Dorg.mongodb.test.uri=${MONGODB_URI} --stacktrace --info --rerun-tasks driver-legacy:test --tests ConnectivityTest
+    ./gradlew -PjdkHome=/opt/java/${JDK} -Dorg.mongodb.test.uri=${MONGODB_URI} --stacktrace --info \
+      ${JAVA_SYSPROP_MONGODB_DRIVER_DEBUGGER} \
+      --rerun-tasks driver-sync:test --tests ConnectivityTest
+    ./gradlew -PjdkHome=/opt/java/${JDK} -Dorg.mongodb.test.uri=${MONGODB_URI} --stacktrace --info \
+      ${JAVA_SYSPROP_MONGODB_DRIVER_DEBUGGER} \
+      --rerun-tasks driver-core:test --tests ConnectivityTest
+    ./gradlew -PjdkHome=/opt/java/${JDK} -Dorg.mongodb.test.uri=${MONGODB_URI} --stacktrace --info \
+      ${JAVA_SYSPROP_MONGODB_DRIVER_DEBUGGER} \
+      --rerun-tasks driver-legacy:test --tests ConnectivityTest
 done
