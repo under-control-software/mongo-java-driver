@@ -50,6 +50,12 @@ class MessageHeader {
                 debugger.invalidMessageHeader(e, this);
             }
             throw e;
+        } else if (messageLength < MESSAGE_HEADER_LENGTH) {
+            if (debugger != null) {
+                debugger.invalidMessageHeader(new MongoInternalException(String.format(
+                        "The reply message length %d is less than the minimum message length %d", messageLength, MESSAGE_HEADER_LENGTH)),
+                        this);
+            }
         }
         if (debugger != null) {
             debugger.validMessageHeader(this, messageLength);

@@ -90,4 +90,11 @@ public class SocketStreamFactory implements StreamFactory {
             throw new MongoClientException("Unable to create default SSLContext", e);
         }
     }
+
+    /**
+     * @return Internal.
+     */
+    public boolean tlsEnabled() {
+        return sslSettings.isEnabled();
+    }
 }

@@ -29,6 +29,9 @@ import com.mongodb.MongoSocketWriteException;
 import com.mongodb.ServerAddress;
 import com.mongodb.annotations.Immutable;
 import com.mongodb.annotations.NotThreadSafe;
+import com.mongodb.connection.AsynchronousSocketChannelStreamFactory;
+import com.mongodb.connection.SocketStreamFactory;
+import com.mongodb.connection.netty.NettyStreamFactory;
 import com.mongodb.internal.async.SingleResultCallback;
 import com.mongodb.connection.AsyncCompletionHandler;
 import com.mongodb.connection.ConnectionDescription;
@@ -94,6 +97,7 @@ public class InternalStreamConnection implements InternalConnection {
     private static final Logger LOGGER = Loggers.getLogger("connection");
 
     private final InternalConnectionDebugger debugger;
+    private final boolean tlsEnabled;
     private final ServerId serverId;
     private final StreamFactory streamFactory;
     private final InternalConnectionInitializer connectionInitializer;
@@ -114,6 +118,7 @@ public class InternalStreamConnection implements InternalConnection {
                                     final InternalConnectionInitializer connectionInitializer) {
         debugger = new InternalConnectionDebugger();
         this.serverId = notNull("serverId", serverId);
+        tlsEnabled = tlsEnabled(streamFactory);
         this.streamFactory = debugger.debuggableStreamFactory(notNull("streamFactory", streamFactory));
         this.compressorList = notNull("compressorList", compressorList);
         this.compressorMap = createCompressorMap(compressorList);
@@ -136,7 +141,7 @@ public class InternalStreamConnection implements InternalConnection {
             description = connectionInitializer.initialize(this);
             opened.set(true);
             sendCompressor = findSendCompressor(description);
-            debugger.connectionOpened(description);
+            debugger.connectionOpened(description, tlsEnabled);
             LOGGER.info(format("Opened connection [%s] to %s", getId(), serverId.getAddress()));
         } catch (Throwable t) {
             close();
@@ -170,6 +175,7 @@ public class InternalStreamConnection implements InternalConnection {
                             description = result;
                             opened.set(true);
                             sendCompressor = findSendCompressor(description);
+                            debugger.connectionOpened(description, tlsEnabled);
                             if (LOGGER.isInfoEnabled()) {
                                 LOGGER.info(format("Opened connection [%s] to %s", getId(), serverId.getAddress()));
                             }
@@ -529,6 +535,7 @@ public class InternalStreamConnection implements InternalConnection {
                 }
             });
         } catch (Exception e) {
+            close();
             callback.onResult(null, translateReadException(e));
         }
     }
@@ -703,6 +710,19 @@ public class InternalStreamConnection implements InternalConnection {
                     .orElseGet(NoOpCommandEventSender::new);
         } else {
             return new NoOpCommandEventSender();
+        }
+    }
+
+    private static boolean tlsEnabled(final StreamFactory factory) {
+        if (factory instanceof NettyStreamFactory) {
+            return ((NettyStreamFactory) factory).tlsEnabled();
+        } else if (factory instanceof SocketStreamFactory) {
+            return ((SocketStreamFactory) factory).tlsEnabled();
+        } else if (factory instanceof AsynchronousSocketChannelStreamFactory) {
+            return false;
+        } else {
+            // see `TlsChannelStreamFactoryFactory`
+            return factory.getClass().isAnonymousClass();
         }
     }
 

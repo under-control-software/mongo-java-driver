@@ -104,4 +104,10 @@ public class NettyStreamFactory implements StreamFactory {
         return new NettyStream(serverAddress, settings, sslSettings, eventLoopGroup, socketChannelClass, allocator);
     }
 
+    /**
+     * @return Internal.
+     */
+    public boolean tlsEnabled() {
+        return sslSettings.isEnabled();
+    }
 }
