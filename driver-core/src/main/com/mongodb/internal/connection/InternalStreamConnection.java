@@ -244,7 +244,6 @@ public class InternalStreamConnection implements InternalConnection {
         CommandEventSender commandEventSender;
 
         try {
-            LOGGER.info("Internal Stream COnnection sending command 247: " + message);
             message.encode(bsonOutput, sessionContext);
             commandEventSender = createCommandEventSender(message, bsonOutput);
             commandEventSender.sendStartedEvent();

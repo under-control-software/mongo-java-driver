@@ -217,7 +217,6 @@ final class CommandOperationHelper {
         MongoException exception;
         try {
             command = commandCreator.create(source.getServerDescription(), connection.getDescription());
-            LOGGER.info("CommandOperationHelper : 220");
             return executeCommand(database, command, decoder, source, connection, binding.getReadPreference(), transformer,
                     binding.getSessionContext());
         } catch (MongoException e) {
@@ -340,7 +339,6 @@ final class CommandOperationHelper {
                                            final FieldNameValidator fieldNameValidator, final Decoder<D> decoder,
                                            final ConnectionSource source, final Connection connection, final ReadPreference readPreference,
                                            final CommandReadTransformer<D, T> transformer, final SessionContext sessionContext) {
-        LOGGER.info("CommandOperationHelper : 343");
         return transformer.apply(connection.command(database, command, fieldNameValidator, readPreference, decoder, sessionContext),
                 source, connection);
     }

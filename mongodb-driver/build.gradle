@@ -34,7 +34,7 @@ sourceSets {
         java {
             srcDirs = ["$rootDir/driver-legacy/src/main",
                        "$rootDir/driver-sync/src/main",
-                        "$rootDir/driver-http/src/main",]
+                       "$rootDir/driver-http/src/main",]
         }
     }
 }

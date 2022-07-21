@@ -78,7 +78,6 @@ class QueryProtocol<T> implements LegacyProtocol<QueryResult<T>> {
 
     QueryProtocol(final MongoNamespace namespace, final int skip, final int numberToReturn, final BsonDocument queryDocument,
                   final BsonDocument fields, final Decoder<T> resultDecoder) {
-        LOGGER.info("Query Protocol : 81");
         this.namespace = namespace;
         this.skip = skip;
         this.withLimitAndBatchSize = false;

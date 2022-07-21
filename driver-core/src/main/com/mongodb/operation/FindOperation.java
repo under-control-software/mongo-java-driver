@@ -728,7 +728,6 @@ public class FindOperation<T> implements AsyncReadOperation<AsyncBatchCursor<T>>
                 Connection connection = source.getConnection();
                 if (serverIsAtLeastVersionThreeDotTwo(connection.getDescription())) {
                     try {
-                        LOGGER.info("FindOperation : 731");
                         return executeCommandWithConnection(binding, source, namespace.getDatabaseName(),
                                 getCommandCreator(binding.getSessionContext()),
                                 CommandResultDocumentCodec.create(decoder, FIRST_BATCH), transformer(), retryReads, connection);
