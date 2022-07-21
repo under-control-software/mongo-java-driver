@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-include ':bson'
-include ':driver-async'
-include ':driver-benchmarks'
-include ':driver-core'
-include ':driver-embedded'
-include ':driver-legacy'
-include ':driver-sync'
-include ':mongo-java-driver'
-include ':mongodb-driver'
-include ':util'
+package com.mongodb.client.http;
 
+public final class MongoClients {
+
+    private MongoClients() {
+    }
+
+    public static MongoClient create(final String httpId) {
+        return new MongoClient(httpId);
+    }
+}

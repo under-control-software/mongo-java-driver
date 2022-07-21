@@ -14,14 +14,9 @@
  * limitations under the License.
  */
 
-include ':bson'
-include ':driver-async'
-include ':driver-benchmarks'
-include ':driver-core'
-include ':driver-embedded'
-include ':driver-legacy'
-include ':driver-sync'
-include ':mongo-java-driver'
-include ':mongodb-driver'
-include ':util'
+/**
+ * This package contains the synchronous CRUD API.
+ */
 
+
+package com.mongodb.client.http;

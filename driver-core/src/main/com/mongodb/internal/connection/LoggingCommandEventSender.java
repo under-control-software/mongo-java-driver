@@ -96,7 +96,6 @@ class LoggingCommandEventSender implements CommandEventSender {
             if (jsonWriter.isTruncated()) {
                 writer.append(" ...");
             }
-
             return writer.toString();
         } finally {
             bsonReader.close();

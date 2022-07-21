@@ -339,7 +339,6 @@ final class CommandOperationHelper {
                                            final FieldNameValidator fieldNameValidator, final Decoder<D> decoder,
                                            final ConnectionSource source, final Connection connection, final ReadPreference readPreference,
                                            final CommandReadTransformer<D, T> transformer, final SessionContext sessionContext) {
-
         return transformer.apply(connection.command(database, command, fieldNameValidator, readPreference, decoder, sessionContext),
                 source, connection);
     }
