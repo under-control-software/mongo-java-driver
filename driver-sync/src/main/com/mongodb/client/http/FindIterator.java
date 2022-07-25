@@ -52,14 +52,11 @@ public class FindIterator<TDocument, TResult> implements FindIterable<TResult> {
     private final String collectionName;
     private  String filter;
     private final String hostURL;
-
     private int limit;
-
     private String  projection;
-
     private String sortField;
-
     private int skip;
+    private String modifiers;
 
 
     private CodecRegistry codecRegistry = com.mongodb.MongoClientSettings.getDefaultCodecRegistry();
@@ -116,6 +113,7 @@ public class FindIterator<TDocument, TResult> implements FindIterable<TResult> {
 
     @Override
     public FindIterable<TResult> modifiers(final Bson modifiers) {
+        this.modifiers = modifiers.toBsonDocument(BsonDocument.class, createRegistry(codecRegistry, uuidRepresentation)).toJson();
         return this;
     }
 
@@ -290,17 +288,19 @@ public class FindIterator<TDocument, TResult> implements FindIterable<TResult> {
         query.appendQueryKeyValue("sortField", this.sortField);
         query.appendQueryKeyValue("includeFields", this.projection);
         query.appendQueryKeyValue("query", filter);
+        query.appendQueryKeyValue("modifiers", this.modifiers);
         return query;
     }
 
     private String getResponse(final String filter, final String sortField, final String sortDirection){
         Query query = getQuery(filter, sortField);
         String queryString = query.toString();
+        System.out.println("Query String ->" + queryString);
         String response = "";
         try {
             response = getResult(queryString, hostURL);
         } catch (IOException e) {
-            return "";
+            e.printStackTrace();
         }
         return response;
     }
