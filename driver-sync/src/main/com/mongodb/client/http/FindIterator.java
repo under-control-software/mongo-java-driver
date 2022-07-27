@@ -58,12 +58,8 @@ public class FindIterator<TDocument, TResult> implements FindIterable<TResult> {
     private String sortField;
     private int skip;
     private String modifiers;
-
     private int partnerId;
-
-
     private CodecRegistry codecRegistry = com.mongodb.MongoClientSettings.getDefaultCodecRegistry();
-
     private UuidRepresentation uuidRepresentation = UuidRepresentation.JAVA_LEGACY;
 
     FindIterator(final String collectionName, final String dbname, final @Nullable Bson filter, final String hostURL) {
