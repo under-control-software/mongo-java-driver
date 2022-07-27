@@ -52,18 +52,14 @@ public class FindIterator<TDocument, TResult> implements FindIterable<TResult> {
     private final String collectionName;
     private  String filter;
     private final String hostURL;
-
+    private String serverType;
     private int limit;
-
     private String  projection;
-
     private String sortField;
-
     private int skip;
-
-
+    private String modifiers;
+    private int partnerId;
     private CodecRegistry codecRegistry = com.mongodb.MongoClientSettings.getDefaultCodecRegistry();
-
     private UuidRepresentation uuidRepresentation = UuidRepresentation.JAVA_LEGACY;
 
     FindIterator(final String collectionName, final String dbname, final @Nullable Bson filter, final String hostURL) {
@@ -77,11 +73,26 @@ public class FindIterator<TDocument, TResult> implements FindIterable<TResult> {
             this.filter = "{}";
         }
         this.dbname = dbname;
-        this.hostURL = hostURL;
         this.limit = 1000;
         this.projection = null;
         this.sortField = null;
         this.skip = 0;
+        this.hostURL= hostURL.substring(0, hostURL.indexOf("?"));
+        this.serverType = "GLOBAL";
+        this.partnerId = 0;
+        String parameters = hostURL.substring(hostURL.indexOf("?") + 1);
+
+        String[] params = parameters.split("&");
+
+        for (String param : params) {
+            String[] keyValue = param.split("=");
+            if (keyValue[0].equals("serverType")) {
+                this.serverType = keyValue[1];
+            }
+            if (keyValue[0].equals("partnerId")) {
+                this.partnerId = Integer.parseInt(keyValue[1]);
+            }
+        }
 
     }
 
@@ -116,6 +127,7 @@ public class FindIterator<TDocument, TResult> implements FindIterable<TResult> {
 
     @Override
     public FindIterable<TResult> modifiers(final Bson modifiers) {
+        this.modifiers = modifiers.toBsonDocument(BsonDocument.class, createRegistry(codecRegistry, uuidRepresentation)).toJson();
         return this;
     }
 
@@ -255,7 +267,7 @@ public class FindIterator<TDocument, TResult> implements FindIterable<TResult> {
         return null;
     }
 
-    public static String getResult(final String mainQuery, final String hostURL) throws IOException {
+    private static String getResult(final String mainQuery, final String hostURL) throws IOException {
         URL url = new URL(hostURL);
         HttpURLConnection httpConn = (HttpURLConnection) url.openConnection();
         httpConn.setRequestMethod("POST");
@@ -282,25 +294,28 @@ public class FindIterator<TDocument, TResult> implements FindIterable<TResult> {
     private Query getQuery(final String filter, final String sortDirection) {
         Query query = new Query();
         query.appendQueryKeyValue("Service", "MONGO");
-        query.appendQueryKeyValue("partnerId", "0");
-        query.appendQueryKeyValue("serverType", "GLOBAL");
+        query.appendQueryKeyValue("partnerId", String.valueOf(partnerId));
+        query.appendQueryKeyValue("serverType", this.serverType);
         query.appendQueryKeyValue("collectionName", collectionName);
         query.appendQueryKeyValue("queryType", "general");
         query.appendQueryKeyValue("limit", String.valueOf(this.limit));
         query.appendQueryKeyValue("sortField", this.sortField);
         query.appendQueryKeyValue("includeFields", this.projection);
         query.appendQueryKeyValue("query", filter);
+        query.appendQueryKeyValue("modifiers", this.modifiers);
         return query;
     }
 
     private String getResponse(final String filter, final String sortField, final String sortDirection){
         Query query = getQuery(filter, sortField);
         String queryString = query.toString();
+        System.out.println("Query String ->" + queryString);
         String response = "";
         try {
             response = getResult(queryString, hostURL);
         } catch (IOException e) {
-            return "";
+            e.printStackTrace();
+            throw new RuntimeException(e);
         }
         return response;
     }
