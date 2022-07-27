@@ -271,7 +271,7 @@ public class FindIterator<TDocument, TResult> implements FindIterable<TResult> {
         return null;
     }
 
-    public static String getResult(final String mainQuery, final String hostURL) throws IOException {
+    private static String getResult(final String mainQuery, final String hostURL) throws IOException {
         URL url = new URL(hostURL);
         HttpURLConnection httpConn = (HttpURLConnection) url.openConnection();
         httpConn.setRequestMethod("POST");
@@ -319,6 +319,7 @@ public class FindIterator<TDocument, TResult> implements FindIterable<TResult> {
             response = getResult(queryString, hostURL);
         } catch (IOException e) {
             e.printStackTrace();
+            throw new RuntimeException(e);
         }
         return response;
     }
